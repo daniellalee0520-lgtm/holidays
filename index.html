@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f2f5fa">
+<title>假期记录本</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f2f5fa; color: #1f2937; -webkit-font-smoothing: antialiased;
+    padding-bottom: 60px;
+  }
+  .app { max-width: 760px; margin: 0 auto; padding: 20px 16px; }
+
+  /* ---------- 顶栏 ---------- */
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+  h1 { font-size: 19px; margin: 0; font-weight: 700; letter-spacing: .2px; }
+  .yearbar {
+    display: flex; align-items: center; gap: 2px; background: #fff;
+    border-radius: 999px; padding: 3px; box-shadow: 0 1px 3px rgba(16,24,40,.07);
+  }
+  .yearbar button {
+    border: 0; background: transparent; width: 28px; height: 28px; border-radius: 50%;
+    font-size: 17px; line-height: 1; color: #64748b; cursor: pointer; transition: .15s;
+  }
+  .yearbar button:hover { background: #eef2f8; }
+  .yearbar span { font-size: 14px; font-weight: 600; min-width: 52px; text-align: center; }
+
+  /* ---------- 卡片 ---------- */
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 520px) { .cards { grid-template-columns: 1fr; } }
+  .card { background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 1px 3px rgba(16,24,40,.07); }
+  .card.annual { --c: #4f7cff; }
+  .card.sick   { --c: #f2743a; }
+  .card-head { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; }
+  .card-head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+  .card-head h3 { margin: 0; font-size: 14px; font-weight: 600; }
+  .card-head .total { margin-left: auto; font-size: 12px; color: #94a3b8; }
+  .remain-line { display: flex; align-items: baseline; gap: 5px; }
+  .remain-line .remain { font-size: 30px; font-weight: 700; color: var(--c); line-height: 1; font-variant-numeric: tabular-nums; }
+  .remain-line .unit { font-size: 12px; color: #8a94a6; }
+  .bar { height: 8px; border-radius: 99px; background: #eef1f6; display: flex; overflow: hidden; margin: 13px 0 10px; }
+  .bar .seg { height: 100%; transition: width .25s ease; }
+  .bar .seg.taken { background: var(--c); }
+  .bar .seg.planned { background: var(--c); opacity: .3; }
+  .stats { display: flex; justify-content: space-between; font-size: 12px; color: #8a94a6; }
+  .stats b { color: #475569; font-weight: 600; }
+
+  /* ---------- 工具栏 ---------- */
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 12px; }
+  #addBtn { flex: 1 1 130px; }
+  .btn {
+    border: 1px solid #e2e8f0; background: #fff; color: #475569; font-size: 13.5px;
+    font-weight: 500; padding: 9px 14px; border-radius: 10px; cursor: pointer;
+    font-family: inherit; transition: .15s;
+  }
+  .btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+  .btn.primary { background: #4f7cff; border-color: #4f7cff; color: #fff; }
+  .btn.primary:hover { background: #3f6cf0; border-color: #3f6cf0; }
+  .btn.danger { color: #e11d48; border-color: #fecdd3; background: #fff1f2; }
+  .btn.danger:hover { background: #ffe4e6; }
+  .btn:disabled { opacity: .55; cursor: not-allowed; }
+
+  /* ---------- 列表 ---------- */
+  .item {
+    background: #fff; border-radius: 14px; padding: 12px 14px; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 1px 3px rgba(16,24,40,.06);
+    border-left: 4px solid var(--c, #cbd5e1);
+    cursor: pointer; transition: .15s;
+  }
+  .item:hover { box-shadow: 0 3px 10px rgba(16,24,40,.1); }
+  .item.annual { --c: #4f7cff; }
+  .item.sick   { --c: #f2743a; }
+  .item-main { flex: 1; min-width: 0; }
+  .item-top { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; flex-wrap: wrap; }
+  .badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 6px; }
+  .badge.annual { background: #eaf0ff; color: #3b63d6; }
+  .badge.sick   { background: #fdeee6; color: #c2551f; }
+  .badge-status { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 6px; }
+  .badge-status.taken   { background: #e8f7ee; color: #1a7a45; }
+  .badge-status.planned { background: #fff4dd; color: #a9690a; }
+  .days { font-size: 13px; font-weight: 600; margin-left: auto; color: #334155; font-variant-numeric: tabular-nums; }
+  .item-date { font-size: 12.5px; color: #7b8798; font-variant-numeric: tabular-nums; }
+  .item-note { font-size: 12.5px; color: #9aa4b2; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item-actions { display: flex; gap: 2px; }
+  .icon-btn {
+    border: 0; background: transparent; font-size: 14px; padding: 6px;
+    border-radius: 8px; cursor: pointer; opacity: .5; transition: .15s; line-height: 1;
+  }
+  .icon-btn:hover { background: #f1f5f9; opacity: 1; }
+  .empty { text-align: center; color: #a3adbb; font-size: 13.5px; padding: 40px 0; }
+
+  /* ---------- 弹窗 ---------- */
+  .mask {
+    position: fixed; inset: 0; background: rgba(15,23,42,.42);
+    -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+    opacity: 0; pointer-events: none; transition: .2s; z-index: 50;
+  }
+  .mask.show { opacity: 1; pointer-events: auto; }
+  .modal {
+    position: fixed; z-index: 51; left: 50%; top: 50%;
+    transform: translate(-50%, -46%) scale(.97);
+    width: min(430px, calc(100vw - 28px)); max-height: 86vh; overflow-y: auto;
+    background: #fff; border-radius: 18px; padding: 20px;
+    box-shadow: 0 20px 50px rgba(15,23,42,.25);
+    opacity: 0; pointer-events: none; transition: .2s;
+  }
+  .modal.show { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .modal-head h2 { margin: 0; font-size: 16px; font-weight: 600; }
+  .close {
+    border: 0; background: #f1f5f9; width: 28px; height: 28px; border-radius: 50%;
+    cursor: pointer; color: #64748b; font-size: 12px; line-height: 1;
+    display: flex; align-items: center; justify-content: center; transition: .15s;
+  }
+  .close:hover { background: #e2e8f0; }
+  .field { display: block; margin-bottom: 15px; }
+  .field > span { display: block; font-size: 12.5px; color: #64748b; margin-bottom: 7px; font-weight: 500; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  input[type=date], input[type=number], input[type=text] {
+    width: 100%; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px;
+    font-size: 14px; font-family: inherit; color: #1f2937; background: #fff; transition: .15s;
+  }
+  input:focus { outline: none; border-color: #4f7cff; box-shadow: 0 0 0 3px rgba(79,124,255,.13); }
+  .seg { display: flex; background: #f1f4f9; border-radius: 10px; padding: 3px; gap: 3px; }
+  .seg button {
+    flex: 1; border: 0; background: transparent; padding: 9px 10px; border-radius: 8px;
+    font-size: 14px; color: #475569; cursor: pointer; font-weight: 500;
+    font-family: inherit; transition: .15s;
+  }
+  .seg button.active { background: #fff; color: #111827; box-shadow: 0 1px 3px rgba(0,0,0,.1); font-weight: 600; }
+  .modal-foot { display: flex; gap: 9px; margin-top: 22px; }
+  .modal-foot .btn { flex: 1; padding: 11px; }
+
+  /* ---------- 小提示 ---------- */
+  .hint {
+    font-size: 11.5px; color: #94a3b8; text-align: center;
+    margin-top: 22px; line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>🗓️ 假期记录本</h1>
+    <div class="yearbar">
+      <button id="prevYear" aria-label="上一年">‹</button>
+      <span id="yearLabel">2026</span>
+      <button id="nextYear" aria-label="下一年">›</button>
+    </div>
+  </header>
+
+  <div class="cards" id="cards"></div>
+
+  <div class="toolbar">
+    <button class="btn primary" id="addBtn">+ 添加记录</button>
+    <button class="btn" id="settingsBtn">额度设置</button>
+    <button class="btn" id="exportBtn">导出 Excel</button>
+    <button class="btn" id="importBtn">导入</button>
+    <input type="file" id="fileInput" accept=".json,.xlsx,.xls,application/json" hidden>
+  </div>
+
+  <div id="list"></div>
+
+  <div class="hint">
+    数据保存在本机浏览器 · 导出 Excel 可备份 / 分享<br>
+    导入支持 Excel（本工具导出的）和 JSON 备份文件
+  </div>
+</div>
+
+<div class="mask" id="mask"></div>
+
+<!-- 记录弹窗 -->
+<div class="modal" id="recModal">
+  <div class="modal-head">
+    <h2 id="recTitle">添加记录</h2>
+    <button class="close" data-close>✕</button>
+  </div>
+
+  <div class="field">
+    <span>类型</span>
+    <div class="seg" id="typeSeg">
+      <button type="button" data-val="annual">年假</button>
+      <button type="button" data-val="sick">病假</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <span>状态</span>
+    <div class="seg" id="statusSeg">
+      <button type="button" data-val="taken">已休</button>
+      <button type="button" data-val="planned">计划休</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <span>日期（开始 / 结束）</span>
+    <div class="row2">
+      <input type="date" id="startInput">
+      <input type="date" id="endInput">
+    </div>
+  </div>
+
+  <div class="field">
+    <span>天数（可手改，如半天填 0.5）</span>
+    <input type="number" id="daysInput" step="0.5" min="0.5">
+  </div>
+
+  <div class="field">
+    <span>备注（可选）</span>
+    <input type="text" id="noteInput" placeholder="例如：春节回家">
+  </div>
+
+  <div class="modal-foot">
+    <button class="btn" data-close>取消</button>
+    <button class="btn primary" id="saveRecBtn">保存</button>
+  </div>
+</div>
+
+<!-- 设置弹窗 -->
+<div class="modal" id="setModal">
+  <div class="modal-head">
+    <h2>额度设置 · <span id="setYear"></span></h2>
+    <button class="close" data-close>✕</button>
+  </div>
+
+  <div class="field">
+    <span>年假总天数</span>
+    <input type="number" id="annualQuota" step="0.5" min="0">
+  </div>
+
+  <div class="field">
+    <span>病假总天数</span>
+    <input type="number" id="sickQuota" step="0.5" min="0">
+  </div>
+
+  <div class="modal-foot">
+    <button class="btn danger" id="clearYearBtn">清空本年记录</button>
+    <button class="btn primary" id="saveSetBtn">保存</button>
+  </div>
+</div>
+
+<!-- SheetJS（用于生成 / 读取真正的 .xlsx） -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'leave-tracker-v1';
+  const YEAR_KEY = 'leave-tracker-year';
+  const DEFAULT_QUOTA = { annual: 10, sick: 10 };
+
+  const $ = id => document.getElementById(id);
+
+  const els = {
+    cards: $('cards'), list: $('list'), yearLabel: $('yearLabel'),
+    prevYear: $('prevYear'), nextYear: $('nextYear'),
+    addBtn: $('addBtn'), settingsBtn: $('settingsBtn'),
+    exportBtn: $('exportBtn'), importBtn: $('importBtn'), fileInput: $('fileInput'),
+    mask: $('mask'), recModal: $('recModal'), setModal: $('setModal'),
+    recTitle: $('recTitle'), typeSeg: $('typeSeg'), statusSeg: $('statusSeg'),
+    startInput: $('startInput'), endInput: $('endInput'),
+    daysInput: $('daysInput'), noteInput: $('noteInput'), saveRecBtn: $('saveRecBtn'),
+    setYear: $('setYear'), annualQuota: $('annualQuota'), sickQuota: $('sickQuota'),
+    saveSetBtn: $('saveSetBtn'), clearYearBtn: $('clearYearBtn')
+  };
+
+  /* ============ 状态 ============ */
+  let state = loadState();
+  let currentYear = Number(localStorage.getItem(YEAR_KEY)) || new Date().getFullYear();
+  let editingId = null;
+  let formType = 'annual';
+  let formStatus = 'taken';
+
+  /* ============ 工具函数 ============ */
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s && typeof s === 'object') {
+          return {
+            quotas: (s.quotas && typeof s.quotas === 'object') ? s.quotas : {},
+            records: Array.isArray(s.records) ? s.records : []
+          };
+        }
+      }
+    } catch (e) { console.warn('读取本地数据失败', e); }
+    return { quotas: {}, records: [] };
+  }
+
+  function saveState() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    catch (e) { alert('保存失败，可能是浏览器存储受限'); }
+  }
+
+  function fmt(n) {
+    const v = Math.round((Number(n) || 0) * 100) / 100;
+    return Number.isInteger(v) ? String(v) : String(parseFloat(v.toFixed(2)));
+  }
+
+  function todayStr() {
+    const d = new Date(), p = n => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  }
+
+  function daysBetween(a, b) {
+    const d1 = new Date(a + 'T00:00:00');
+    const d2 = new Date(b + 'T00:00:00');
+    return Math.round((d2 - d1) / 86400000) + 1;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+  }
+
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+
+  function getQuota(year) {
+    const q = state.quotas[year];
+    if (q && typeof q === 'object') {
+      return { annual: Number(q.annual) || 0, sick: Number(q.sick) || 0 };
+    }
+    return { annual: DEFAULT_QUOTA.annual, sick: DEFAULT_QUOTA.sick };
+  }
+
+  function recordsOf(year) {
+    return state.records.filter(r => Number(String(r.start).slice(0, 4)) === year);
+  }
+
+  function stats(year) {
+    const q = getQuota(year);
+    const recs = recordsOf(year);
+    const sum = (type, status) => recs
+      .filter(r => r.type === type && r.status === status)
+      .reduce((a, r) => a + (Number(r.days) || 0), 0);
+
+    const build = (total, taken, planned) => ({
+      total, taken, planned,
+      left: Math.round((total - taken - planned) * 100) / 100
+    });
+
+    return {
+      annual: build(q.annual, sum('annual', 'taken'), sum('annual', 'planned')),
+      sick:   build(q.sick,   sum('sick', 'taken'),   sum('sick', 'planned'))
+    };
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+
+  /* ============ 渲染 ============ */
+  function render() {
+    els.yearLabel.textContent = currentYear;
+    renderCards();
+    renderList();
+  }
+
+  function renderCards() {
+    const s = stats(currentYear);
+
+    els.cards.innerHTML = ['annual', 'sick'].map(type => {
+      const d = s[type];
+      const name = type === 'annual' ? '年假' : '病假';
+      const used = d.taken + d.planned;
+      const base = Math.max(d.total, used, 0);
+      const takenPct = base > 0 ? (d.taken / base) * 100 : 0;
+      const plannedPct = base > 0 ? (d.planned / base) * 100 : 0;
+      const over = d.left < 0;
+
+      return '' +
+        '<div class="card ' + type + '">' +
+          '<div class="card-head">' +
+            '<span class="dot"></span>' +
+            '<h3>' + name + '</h3>' +
+            '<span class="total">总额 ' + fmt(d.total) + ' 天</span>' +
+          '</div>' +
+          '<div class="remain-line">' +
+            '<span class="remain">' + fmt(d.left) + '</span>' +
+            '<span class="unit">天剩余' + (over ? '（已超支）' : '') + '</span>' +
+          '</div>' +
+          '<div class="bar">' +
+            '<div class="seg taken" style="width:' + Math.min(100, takenPct) + '%"></div>' +
+            '<div class="seg planned" style="width:' + Math.min(100, plannedPct) + '%"></div>' +
+          '</div>' +
+          '<div class="stats">' +
+            '<span>已休 <b>' + fmt(d.taken) + '</b></span>' +
+            '<span>计划 <b>' + fmt(d.planned) + '</b></span>' +
+            '<span>总额 <b>' + fmt(d.total) + '</b></span>' +
+          '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  function renderList() {
+    const recs = recordsOf(currentYear).slice().sort((a, b) => {
+      if (a.start !== b.start) return a.start < b.start ? 1 : -1;
+      return 0;
+    });
+
+    if (!recs.length) {
+      els.list.innerHTML = '<div class="empty">本年还没有记录，点「+ 添加记录」开始吧</div>';
+      return;
+    }
+
+    els.list.innerHTML = recs.map(r => {
+      const typeName = r.type === 'annual' ? '年假' : '病假';
+      const statusName = r.status === 'taken' ? '已休' : '计划休';
+      const range = r.start === r.end ? r.start : (r.start + ' ~ ' + r.end);
+
+      return '' +
+        '<div class="item ' + r.type + '" data-id="' + r.id + '">' +
+          '<div class="item-main">' +
+            '<div class="item-top">' +
+              '<span class="badge ' + r.type + '">' + typeName + '</span>' +
+              '<span class="badge-status ' + r.status + '">' + statusName + '</span>' +
+              '<span class="days">' + fmt(r.days) + ' 天</span>' +
+            '</div>' +
+            '<div class="item-date">' + range + '</div>' +
+            (r.note ? '<div class="item-note">' + escapeHtml(r.note) + '</div>' : '') +
+          '</div>' +
+          '<div class="item-actions">' +
+            '<button class="icon-btn" data-act="edit" title="编辑">✏️</button>' +
+            '<button class="icon-btn" data-act="del" title="删除">🗑️</button>' +
+          '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  /* ============ 弹窗控制 ============ */
+  function openModal(el) {
+    document.querySelectorAll('.modal.show').forEach(m => m.classList.remove('show'));
+    el.classList.add('show');
+    els.mask.classList.add('show');
+  }
+
+  function closeModals() {
+    document.querySelectorAll('.modal.show').forEach(m => m.classList.remove('show'));
+    els.mask.classList.remove('show');
+  }
+
+  function initSeg(el, onChange) {
+    el.addEventListener('click', e => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      Array.prototype.forEach.call(el.children, b => b.classList.toggle('active', b === btn));
+      onChange(btn.dataset.val);
+    });
+  }
+
+  function setSeg(el, val) {
+    Array.prototype.forEach.call(el.children, b => b.classList.toggle('active', b.dataset.val === val));
+  }
+
+  /* ============ 记录表单 ============ */
+  function syncDays() {
+    const s = els.startInput.value;
+    if (!s) return;
+    let e = els.endInput.value || s;
+    if (e < s) { e = s; els.endInput.value = s; }
+    els.daysInput.value = daysBetween(s, e);
+  }
+
+  function openRecModal(rec) {
+    editingId = rec ? rec.id : null;
+    els.recTitle.textContent = rec ? '编辑记录' : '添加记录';
+
+    formType = rec ? rec.type : 'annual';
+    formStatus = rec ? rec.status : 'taken';
+    setSeg(els.typeSeg, formType);
+    setSeg(els.statusSeg, formStatus);
+
+    const today = todayStr();
+    els.startInput.value = rec ? rec.start : today;
+    els.endInput.value = rec ? rec.end : today;
+    els.daysInput.value = rec ? rec.days : 1;
+    els.noteInput.value = rec ? (rec.note || '') : '';
+
+    openModal(els.recModal);
+  }
+
+  function saveRecord() {
+    const start = els.startInput.value;
+    if (!start) { alert('请选择开始日期'); return; }
+
+    let end = els.endInput.value || start;
+    if (end < start) end = start;
+
+    const days = Number(els.daysInput.value);
+    if (!(days > 0)) { alert('天数需要大于 0'); return; }
+
+    const rec = {
+      id: editingId || uid(),
+      type: formType,
+      status: formStatus,
+      start: start,
+      end: end,
+      days: Math.round(days * 100) / 100,
+      note: els.noteInput.value.trim()
+    };
+
+    if (start.slice(0, 4) !== end.slice(0, 4)) {
+      if (!confirm('这条记录跨年了，将按开始日期所在年份统计。确定保存吗？')) return;
+    }
+
+    if (editingId) {
+      const i = state.records.findIndex(r => r.id === editingId);
+      if (i >= 0) state.records[i] = rec;
+    } else {
+      state.records.push(rec);
+    }
+
+    const recYear = Number(start.slice(0, 4));
+    if (recYear && recYear !== currentYear) {
+      currentYear = recYear;
+      localStorage.setItem(YEAR_KEY, String(currentYear));
+    }
+
+    saveState();
+    closeModals();
+    render();
+  }
+
+  /* ============ 设置 ============ */
+  function openSettings() {
+    const q = getQuota(currentYear);
+    els.setYear.textContent = currentYear + ' 年';
+    els.annualQuota.value = q.annual;
+    els.sickQuota.value = q.sick;
+    openModal(els.setModal);
+  }
+
+  function saveSettings() {
+    const a = Number(els.annualQuota.value);
+    const s = Number(els.sickQuota.value);
+    state.quotas[currentYear] = {
+      annual: a >= 0 ? a : 0,
+      sick: s >= 0 ? s : 0
+    };
+    saveState();
+    closeModals();
+    render();
+  }
+
+  function clearYear() {
+    const n = recordsOf(currentYear).length;
+    if (!n) { alert('本年没有记录'); return; }
+    if (!confirm('确定删除 ' + currentYear + ' 年的全部 ' + n + ' 条记录吗？此操作不可撤销。')) return;
+    state.records = state.records.filter(r => Number(String(r.start).slice(0, 4)) !== currentYear);
+    saveState();
+    closeModals();
+    render();
+  }
+
+  /* ============ 构建 Excel 数据 ============ */
+  function buildExportAOA(year) {
+    const s = stats(year);
+    const recs = recordsOf(year).slice().sort((a, b) => {
+      if (a.start !== b.start) return a.start < b.start ? -1 : 1;
+      return 0;
+    });
+
+    const aoa = [];
+    const merges = [];
+
+    aoa.push(['假期记录', '', '', '', '', '']);
+    merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } });
+
+    aoa.push(['年份', year + ' 年', '', '', '', '']);
+    aoa.push(['导出时间', new Date().toLocaleString('zh-CN'), '', '', '', '']);
+    aoa.push([]);
+
+    // 汇总
+    const sumTitleRow = aoa.length;
+    aoa.push(['额度汇总', '', '', '', '', '']);
+    merges.push({ s: { r: sumTitleRow, c: 0 }, e: { r: sumTitleRow, c: 5 } });
+
+    aoa.push(['假期类型', '总天数', '已休天数', '计划休天数', '剩余天数', '']);
+    ['annual', 'sick'].forEach(t => {
+      const d = s[t];
+      aoa.push([
+        t === 'annual' ? '年假' : '病假',
+        d.total, d.taken, d.planned, d.left, ''
+      ]);
+    });
+    aoa.push([]);
+
+    // 明细
+    const detTitleRow = aoa.length;
+    aoa.push(['使用明细', '', '', '', '', '']);
+    merges.push({ s: { r: detTitleRow, c: 0 }, e: { r: detTitleRow, c: 5 } });
+
+    aoa.push(['类型', '状态', '开始日期', '结束日期', '天数', '备注']);
+
+    if (!recs.length) {
+      aoa.push(['暂无记录', '', '', '', '', '']);
+    } else {
+      recs.forEach(r => {
+        aoa.push([
+          r.type === 'annual' ? '年假' : '病假',
+          r.status === 'taken' ? '已休' : '计划休',
+          r.start,
+          r.end,
+          Number(r.days) || 0,
+          r.note || ''
+        ]);
+      });
+    }
+
+    return { aoa, merges, detailHeaderRow: detTitleRow + 1 };
+  }
+
+  /* ============ 导出 Excel ============ */
+  function exportExcel() {
+    const year = currentYear;
+    const { aoa, merges, detailHeaderRow } = buildExportAOA(year);
+
+    // 没有 SheetJS 时退回 HTML 表格 .xls（Excel 也能打开）
+    if (typeof XLSX === 'undefined') {
+      exportFallbackXls(aoa, '假期记录-' + year + '年.xls');
+      return;
+    }
+
+    try {
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+      // 列宽
+      ws['!cols'] = [
+        { wch: 11 }, { wch: 11 }, { wch: 13 },
+        { wch: 13 }, { wch: 9 },  { wch: 28 }
+      ];
+
+      // 合并标题行
+      ws['!merges'] = merges;
+
+      // 给表头加粗（用单元格样式，xlsx 写入时会保留）
+      const headerRows = [4, detailHeaderRow]; // 汇总表头 & 明细表头
+      headerRows.forEach(r => {
+        for (let c = 0; c < 6; c++) {
+          const addr = XLSX.utils.encode_cell({ r, c });
+          if (ws[addr]) {
+            ws[addr].s = {
+              font: { bold: true },
+              fill: { fgColor: { rgb: 'EAF0FF' } },
+              alignment: { horizontal: 'center' }
+            };
+          }
+        }
+      });
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, year + '年假期');
+
+      const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([buf], { type: 'application/octet-stream' });
+      downloadBlob(blob, '假期记录-' + year + '年.xlsx');
+    } catch (err) {
+      console.error(err);
+      exportFallbackXls(aoa, '假期记录-' + year + '年.xls');
+    }
+  }
+
+  // 无依赖兜底：HTML 表格 + .xls 后缀
+  function exportFallbackXls(aoa, filename) {
+    const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]
+    ));
+    let html = '<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8">' +
+      '<style>td,th{border:1px solid #ccc;padding:4px 10px;font-family:sans-serif;font-size:11pt;vertical-align:middle;}' +
+      'th{background:#eaf0ff;font-weight:bold;}</style></head><body><table>';
+    aoa.forEach((row, i) => {
+      const tag = (i === 4 || i === 6 || i === 7) ? 'th' : 'td';
+      html += '<tr>' + row.map(c => '<' + tag + '>' + esc(c) + '</' + tag + '>').join('') + '</tr>';
+    });
+    html += '</table></body></html>';
+    const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    downloadBlob(blob, filename);
+  }
+
+  /* ============ 导入 ============ */
+  function importJsonFile(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const d = JSON.parse(e.target.result);
+        if (!d || !Array.isArray(d.records)) throw new Error('文件格式不正确');
+        if (!confirm('导入会覆盖当前所有数据，确定继续吗？')) return;
+        state = {
+          quotas: (d.quotas && typeof d.quotas === 'object') ? d.quotas : {},
+          records: d.records
+        };
+        saveState();
+        render();
+        alert('导入成功，共 ' + d.records.length + ' 条记录');
+      } catch (err) {
+        alert('导入失败：' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function normalizeDate(v) {
+    if (v == null || v === '') return '';
+    if (v instanceof Date && !isNaN(v)) {
+      return v.getFullYear() + '-' +
+        String(v.getMonth() + 1).padStart(2, '0') + '-' +
+        String(v.getDate()).padStart(2, '0');
+    }
+    const s = String(v).trim();
+    // 2026-01-05 / 2026/1/5 / 2026年1月5日
+    const m = s.match(/^(\d{4})\s*[-\/年\.]\s*(\d{1,2})\s*[-\/月\.]\s*(\d{1,2})/);
+    if (m) {
+      return m[1] + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[3]).padStart(2, '0');
+    }
+    // Excel 日期序列号
+    const n = Number(s);
+    if (Number.isFinite(n) && n > 20000 && n < 80000) {
+      const d = new Date(Date.UTC(1899, 11, 30) + n * 86400000);
+      if (!isNaN(d)) {
+        return d.getUTCFullYear() + '-' +
+          String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
+          String(d.getUTCDate()).padStart(2, '0');
+      }
+    }
+    return '';
+  }
+
+  function importExcelFile(file) {
+    if (typeof XLSX === 'undefined') {
+      alert('Excel 解析库未加载（可能无网络），请改用 JSON 备份文件导入，或联网后重试。');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, { type: 'array', cellDates: true });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+
+        // 找到明细表头行
+        let headerIdx = -1;
+        for (let i = 0; i < rows.length; i++) {
+          const r = (rows[i] || []).map(c => String(c == null ? '' : c).trim());
+          if (r[0] === '类型' && r[1] === '状态') { headerIdx = i; break; }
+        }
+        if (headerIdx < 0) {
+          throw new Error('找不到「类型 / 状态」表头，请使用本工具导出的 Excel');
+        }
+
+        const recs = [];
+        for (let i = headerIdx + 1; i < rows.length; i++) {
+          const r = (rows[i] || []).map(c => (c == null ? '' : c));
+          const t0 = String(r[0]).trim();
+          const t1 = String(r[1]).trim();
+          if (!t0 || t0 === '暂无记录') continue;
+
+          const type = t0 === '年假' ? 'annual' : (t0 === '病假' ? 'sick' : null);
+          const status = t1 === '已休' ? 'taken' : (t1 === '计划休' ? 'planned' : null);
+          if (!type || !status) continue;
+
+          const start = normalizeDate(r[2]);
+          const end = normalizeDate(r[3]) || start;
+          const days = Number(r[4]);
+          if (!start || !(days > 0)) continue;
+
+          recs.push({
+            id: uid(),
+            type: type,
+            status: status,
+            start: start,
+            end: end,
+            days: Math.round(days * 100) / 100,
+            note: String(r[5] == null ? '' : r[5]).trim()
+          });
+        }
+
+        if (!recs.length) throw new Error('没有解析到有效记录');
+
+        if (!confirm('已解析到 ' + recs.length + ' 条记录。\n导入会覆盖当前所有数据，确定继续吗？')) return;
+
+        state = { quotas: state.quotas || {}, records: recs };
+        saveState();
+
+        // 跳到记录最多的年份，便于查看
+        const years = recs.map(r => Number(r.start.slice(0, 4))).filter(Boolean);
+        if (years.length) {
+          const firstYear = years.sort((a, b) => a - b)[0];
+          currentYear = firstYear;
+          localStorage.setItem(YEAR_KEY, String(currentYear));
+        }
+
+        render();
+        alert('导入成功，共 ' + recs.length + ' 条记录');
+      } catch (err) {
+        alert('导入失败：' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  /* ============ 事件绑定 ============ */
+  initSeg(els.typeSeg, v => { formType = v; });
+  initSeg(els.statusSeg, v => { formStatus = v; });
+
+  els.prevYear.addEventListener('click', () => {
+    currentYear--;
+    localStorage.setItem(YEAR_KEY, String(currentYear));
+    render();
+  });
+
+  els.nextYear.addEventListener('click', () => {
+    currentYear++;
+    localStorage.setItem(YEAR_KEY, String(currentYear));
+    render();
+  });
+
+  els.addBtn.addEventListener('click', () => openRecModal(null));
+  els.settingsBtn.addEventListener('click', openSettings);
+  els.exportBtn.addEventListener('click', exportExcel);
+  els.importBtn.addEventListener('click', () => els.fileInput.click());
+
+  els.fileInput.addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0];
+    if (f) {
+      if (/\.(xlsx|xls)$/i.test(f.name)) importExcelFile(f);
+      else importJsonFile(f);
+    }
+    e.target.value = '';
+  });
+
+  els.startInput.addEventListener('change', () => {
+    if (!els.startInput.value) return;
+    if (!els.endInput.value || els.endInput.value < els.startInput.value) {
+      els.endInput.value = els.startInput.value;
+    }
+    syncDays();
+  });
+
+  els.endInput.addEventListener('change', () => {
+    if (!els.endInput.value) return;
+    if (!els.startInput.value) els.startInput.value = els.endInput.value;
+    if (els.endInput.value < els.startInput.value) els.endInput.value = els.startInput.value;
+    syncDays();
+  });
+
+  els.saveRecBtn.addEventListener('click', saveRecord);
+  els.saveSetBtn.addEventListener('click', saveSettings);
+  els.clearYearBtn.addEventListener('click', clearYear);
+
+  els.list.addEventListener('click', e => {
+    const item = e.target.closest('.item');
+    if (!item) return;
+    const id = item.dataset.id;
+    const rec = state.records.find(r => r.id === id);
+    if (!rec) return;
+
+    const btn = e.target.closest('button[data-act]');
+    if (btn) {
+      if (btn.dataset.act === 'edit') {
+        openRecModal(rec);
+      } else if (btn.dataset.act === 'del') {
+        if (confirm('确定删除这条记录吗？')) {
+          state.records = state.records.filter(r => r.id !== id);
+          saveState();
+          render();
+        }
+      }
+      return;
+    }
+    openRecModal(rec);
+  });
+
+  els.mask.addEventListener('click', closeModals);
+
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-close]')) closeModals();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModals();
+  });
+
+  /* ============ 启动 ============ */
+  render();
+})();
+</script>
+</body>
+</html>
